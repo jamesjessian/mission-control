@@ -103,7 +103,7 @@ Resources:
         Variables:
           SPENDING_TABLE: !Ref SpendingTable
           SPENDING_SECRET_ARN: !Ref SpendingCredentials
-          BASE_URL: !Sub https://${CloudFrontDistribution.DomainName}
+          BASE_URL: https://da4yrz16q56ep.cloudfront.net
       Events:
         SpendingStatus:
           Type: HttpApi
