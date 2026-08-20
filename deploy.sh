@@ -9,6 +9,7 @@ echo "── Building Lambda dependencies ──"
 cd backend/revenue && npm install && cd ../..
 cd backend/players && npm install && cd ../..
 cd backend/messages && npm install && cd ../..
+cd backend/spending && npm install && cd ../..
 
 echo "── SAM Build ──"
 sam build

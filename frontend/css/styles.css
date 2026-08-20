@@ -532,6 +532,168 @@ main {
   border-radius: 8px;
 }
 
+/* ── Spending ───────────────────────────────────── */
+
+.spending-provider {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.spending-provider:last-child { border-bottom: none; }
+
+.spending-provider-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.spending-provider-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.spending-provider-status {
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+}
+
+.spending-connect-btn {
+  flex-shrink: 0;
+}
+
+.spending-account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.spending-account:last-child { border-bottom: none; }
+
+.spending-account-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.spending-account-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.spending-account-type {
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}
+
+.spending-account-balance {
+  font-size: 1.125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.spending-hero {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1rem;
+}
+
+.spending-cat {
+  margin-bottom: 0.625rem;
+}
+
+.spending-cat-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.spending-cat-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.spending-cat-amount {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.spending-cat-bar {
+  height: 6px;
+  background: var(--accent-light);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.spending-cat-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.spending-date-group {
+  margin-bottom: 0.75rem;
+}
+
+.spending-date-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.375rem 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.25rem;
+}
+
+.spending-tx {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.spending-tx:last-child { border-bottom: none; }
+
+.spending-tx-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.0625rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.spending-tx-desc {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spending-tx-cat {
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+}
+
+.spending-tx-amount {
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  margin-left: 0.75rem;
+}
+
+.spending-negative { color: var(--text); }
+.spending-positive { color: var(--green); }
+
 /* ── Monday Messages ────────────────────────────── */
 
 .msg-editor,

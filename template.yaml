@@ -90,6 +90,93 @@ Resources:
       Description: GCP service account credentials for Google Sheets API
       SecretString: '{}'
 
+  # ── Spending Lambda ─────────────────────────────────
+  SpendingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/spending/
+      Handler: index.handler
+      Timeout: 30
+      Architectures:
+        - arm64
+      Environment:
+        Variables:
+          SPENDING_TABLE: !Ref SpendingTable
+          SPENDING_SECRET_ARN: !Ref SpendingCredentials
+          BASE_URL: !Sub https://${CloudFrontDistribution.DomainName}
+      Events:
+        SpendingStatus:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /api/spending/status
+            Method: GET
+        SpendingAuthMonzo:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /api/spending/auth/monzo
+            Method: GET
+        SpendingAuthMonzoCallback:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /api/spending/auth/monzo/callback
+            Method: GET
+        SpendingAccounts:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /api/spending/accounts
+            Method: GET
+        SpendingTransactions:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /api/spending/transactions
+            Method: GET
+        SpendingDisconnect:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /api/spending/disconnect
+            Method: DELETE
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SpendingTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref SpendingCredentials
+
+  # ── DynamoDB (spending tokens + cache) ──────────────
+  SpendingTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  # ── Spending Credentials (Monzo + Enable Banking) ───
+  SpendingCredentials:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: mission-control/spending
+      Description: OAuth credentials for Monzo and Enable Banking
+      SecretString: '{"monzo":{"clientId":"","clientSecret":""},"enableBanking":{"appId":"","appSecret":""}}'
+
   # ── Messages Lambda ─────────────────────────────────
   MessagesFunction:
     Type: AWS::Serverless::Function

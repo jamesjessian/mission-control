@@ -43,6 +43,14 @@
         </button>
       </li>
       <li>
+        <button class="menu-item" data-page="spending">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/>
+          </svg>
+          <span>Spending</span>
+        </button>
+      </li>
+      <li>
         <button class="menu-item" data-page="messages">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M7 8h10M7 12h4m1 8-4-4H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3l-4 4z"/>
@@ -172,6 +180,43 @@
 
         <div class="loading" id="players-loading">Loading…</div>
         <div class="error" id="players-error" hidden></div>
+      </div>
+    </section>
+
+    <!-- ── Spending Page ──────────────────────────── -->
+    <section class="page" id="page-spending">
+      <!-- Connection status -->
+      <div class="card" id="spending-connect">
+        <h2>Connect Accounts</h2>
+        <div id="spending-providers"></div>
+        <div class="loading" id="spending-status-loading">Loading…</div>
+      </div>
+
+      <!-- Accounts + Balances -->
+      <div class="card" id="spending-accounts-card" hidden>
+        <h2>Accounts</h2>
+        <div id="spending-accounts"></div>
+      </div>
+
+      <!-- Summary -->
+      <div class="card" id="spending-summary-card" hidden>
+        <div class="card-header">
+          <div class="period-tabs" id="spending-tabs">
+            <button class="tab active" data-days="7">7d</button>
+            <button class="tab" data-days="30">30d</button>
+            <button class="tab" data-days="90">90d</button>
+          </div>
+        </div>
+        <div class="spending-hero" id="spending-hero"></div>
+        <div id="spending-categories"></div>
+      </div>
+
+      <!-- Transaction list -->
+      <div class="card" id="spending-txs-card" hidden>
+        <h2>Transactions</h2>
+        <div id="spending-txs"></div>
+        <div class="loading" id="spending-loading" hidden>Loading…</div>
+        <div class="error" id="spending-error" hidden></div>
       </div>
     </section>
 

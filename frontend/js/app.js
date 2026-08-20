@@ -33,7 +33,7 @@ menu.addEventListener('touchmove', e => {
 // ── Page Navigation ───────────────────────────────
 const menuItems = document.querySelectorAll('.menu-item')
 const pages = document.querySelectorAll('.page')
-const pageTitles = { revenue: 'Revenue', players: 'Players', messages: 'Monday Messages', todo: 'Todo', documents: 'Documents' }
+const pageTitles = { revenue: 'Revenue', players: 'Players', spending: 'Spending', messages: 'Monday Messages', todo: 'Todo', documents: 'Documents' }
 
 menuItems.forEach(item => {
   item.addEventListener('click', () => {
@@ -47,6 +47,7 @@ menuItems.forEach(item => {
     if (page === 'revenue' && !revenueData) fetchRevenue(currentDays)
     if (page === 'players' && !playersData) fetchPlayers(playersDays)
     if (page === 'messages' && !messagesLoaded) fetchMessageHistory()
+    if (page === 'spending' && !spendingLoaded) initSpending()
   })
 })
 
@@ -837,6 +838,256 @@ document.querySelectorAll('#players-tabs .tab').forEach(tab => {
     playersDays = parseInt(tab.dataset.days)
     playersData = null
     fetchPlayers(playersDays)
+  })
+})
+
+// ── Spending ────────────────────────────────────────
+
+let spendingLoaded = false
+let spendingDays = 30
+
+const CATEGORY_LABELS = {
+  general: 'General', groceries: 'Groceries', eating_out: 'Eating Out',
+  transport: 'Transport', shopping: 'Shopping', entertainment: 'Entertainment',
+  bills: 'Bills', expenses: 'Expenses', cash: 'Cash',
+  personal_care: 'Personal Care', holidays: 'Holidays', family: 'Family',
+  gifts: 'Gifts', charity: 'Charity', finances: 'Finances',
+  savings: 'Savings', income: 'Income', transfers: 'Transfers',
+}
+
+const CATEGORY_COLORS = {
+  groceries: '#34c759', eating_out: '#ff9500', transport: '#007aff',
+  shopping: '#af52de', entertainment: '#ff2d55', bills: '#5856d6',
+  general: '#8e8e93', expenses: '#ff6b35', cash: '#30d158',
+}
+
+async function initSpending() {
+  spendingLoaded = true
+  await fetchSpendingStatus()
+  // Check if we just connected (hash fragment)
+  if (location.hash === '#spending-connected') {
+    location.hash = ''
+    await fetchSpendingData(spendingDays)
+  }
+}
+
+async function fetchSpendingStatus() {
+  const loading = document.getElementById('spending-status-loading')
+  loading.hidden = false
+
+  try {
+    const resp = await fetch(`${API_BASE}/api/spending/status`)
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+    const data = await resp.json()
+    renderProviders(data.providers)
+
+    // If any provider connected, fetch data
+    if (data.providers.monzo?.connected || data.providers.enableBanking?.connected) {
+      await fetchSpendingData(spendingDays)
+    }
+  } catch (err) {
+    console.error('Spending status error:', err)
+  } finally {
+    loading.hidden = true
+  }
+}
+
+function renderProviders(providers) {
+  const container = document.getElementById('spending-providers')
+  container.innerHTML = ''
+
+  // Monzo
+  const monzoDiv = document.createElement('div')
+  monzoDiv.className = 'spending-provider'
+  if (providers.monzo?.connected) {
+    monzoDiv.innerHTML = `
+      <div class="spending-provider-info">
+        <span class="spending-provider-name">🟢 Monzo</span>
+        <span class="spending-provider-status">Connected</span>
+      </div>
+      <button class="msg-btn secondary spending-disconnect" data-provider="monzo">Disconnect</button>
+    `
+  } else {
+    monzoDiv.innerHTML = `
+      <div class="spending-provider-info">
+        <span class="spending-provider-name">⚪ Monzo</span>
+        <span class="spending-provider-status">Not connected</span>
+      </div>
+      <button class="msg-btn primary spending-connect-btn" onclick="location.href='${API_BASE}/api/spending/auth/monzo'">Connect</button>
+    `
+  }
+  container.appendChild(monzoDiv)
+
+  // Nationwide + Barclaycard (Enable Banking - coming soon)
+  for (const bank of ['Nationwide', 'Barclaycard']) {
+    const div = document.createElement('div')
+    div.className = 'spending-provider'
+    div.innerHTML = `
+      <div class="spending-provider-info">
+        <span class="spending-provider-name">⚪ ${bank}</span>
+        <span class="spending-provider-status">Coming soon</span>
+      </div>
+      <button class="msg-btn secondary" disabled>Connect</button>
+    `
+    container.appendChild(div)
+  }
+
+  // Disconnect handlers
+  container.querySelectorAll('.spending-disconnect').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const provider = btn.dataset.provider
+      if (!confirm(`Disconnect ${provider}?`)) return
+      await fetch(`${API_BASE}/api/spending/disconnect?provider=${provider}`, { method: 'DELETE' })
+      spendingLoaded = false
+      initSpending()
+    })
+  })
+}
+
+async function fetchSpendingData(days) {
+  const loading = document.getElementById('spending-loading')
+  const error = document.getElementById('spending-error')
+  if (loading) loading.hidden = false
+  if (error) error.hidden = true
+
+  try {
+    // Fetch accounts and transactions in parallel
+    const [accResp, txResp] = await Promise.all([
+      fetch(`${API_BASE}/api/spending/accounts`),
+      fetch(`${API_BASE}/api/spending/transactions?days=${days}`),
+    ])
+
+    if (!accResp.ok || !txResp.ok) throw new Error('Failed to fetch spending data')
+
+    const accData = await accResp.json()
+    const txData = await txResp.json()
+
+    renderAccounts(accData.accounts)
+    renderSpendingSummary(txData.summary, days)
+    renderTransactions(txData.transactions)
+  } catch (err) {
+    if (error) {
+      error.textContent = `Failed to load: ${err.message}`
+      error.hidden = false
+    }
+  } finally {
+    if (loading) loading.hidden = true
+  }
+}
+
+function renderAccounts(accounts) {
+  const card = document.getElementById('spending-accounts-card')
+  const container = document.getElementById('spending-accounts')
+  if (!accounts.length) { card.hidden = true; return }
+
+  card.hidden = false
+  container.innerHTML = accounts.filter(a => !a.error).map(acc => `
+    <div class="spending-account">
+      <div class="spending-account-info">
+        <span class="spending-account-name">${acc.name}</span>
+        <span class="spending-account-type">${acc.type || ''}</span>
+      </div>
+      <span class="spending-account-balance">£${Math.abs(acc.balance).toFixed(2)}</span>
+    </div>
+  `).join('')
+}
+
+function renderSpendingSummary(summary, days) {
+  const card = document.getElementById('spending-summary-card')
+  card.hidden = false
+
+  // Hero stats
+  document.getElementById('spending-hero').innerHTML = `
+    <div class="hero-stat">
+      <span class="hero-label">Total spent (${days}d)</span>
+      <span class="hero-value">£${summary.totalSpent.toFixed(2)}</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-label">Daily avg</span>
+      <span class="hero-value secondary">£${summary.avgDailySpend.toFixed(2)}</span>
+    </div>
+  `
+
+  // Categories
+  const cats = Object.entries(summary.byCategory)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+
+  const maxCat = cats.length ? cats[0][1] : 1
+
+  document.getElementById('spending-categories').innerHTML = cats.map(([cat, amount]) => {
+    const label = CATEGORY_LABELS[cat] || cat
+    const color = CATEGORY_COLORS[cat] || '#8e8e93'
+    const pct = (amount / maxCat * 100).toFixed(0)
+    return `
+      <div class="spending-cat">
+        <div class="spending-cat-header">
+          <span class="spending-cat-name">${label}</span>
+          <span class="spending-cat-amount">£${amount.toFixed(2)}</span>
+        </div>
+        <div class="spending-cat-bar">
+          <div class="spending-cat-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+      </div>
+    `
+  }).join('')
+}
+
+function renderTransactions(txs) {
+  const card = document.getElementById('spending-txs-card')
+  card.hidden = false
+
+  const container = document.getElementById('spending-txs')
+  if (!txs.length) {
+    container.innerHTML = '<p class="muted">No transactions found</p>'
+    return
+  }
+
+  // Group by date
+  const grouped = {}
+  for (const tx of txs) {
+    const date = tx.date.split('T')[0]
+    if (!grouped[date]) grouped[date] = []
+    grouped[date].push(tx)
+  }
+
+  container.innerHTML = Object.entries(grouped).map(([date, txs]) => {
+    const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('en-GB', {
+      weekday: 'short', day: 'numeric', month: 'short'
+    })
+    const dayTotal = txs.reduce((s, t) => s + t.amount, 0)
+
+    return `
+      <div class="spending-date-group">
+        <div class="spending-date-header">
+          <span>${dateLabel}</span>
+          <span class="${dayTotal < 0 ? 'spending-negative' : 'spending-positive'}">
+            ${dayTotal < 0 ? '-' : '+'}£${Math.abs(dayTotal).toFixed(2)}
+          </span>
+        </div>
+        ${txs.map(tx => `
+          <div class="spending-tx">
+            <div class="spending-tx-info">
+              <span class="spending-tx-desc">${escapeHtml(tx.description)}</span>
+              <span class="spending-tx-cat">${CATEGORY_LABELS[tx.category] || tx.category || ''}</span>
+            </div>
+            <span class="spending-tx-amount ${tx.amount < 0 ? 'spending-negative' : 'spending-positive'}">
+              ${tx.amount < 0 ? '-' : '+'}£${Math.abs(tx.amount).toFixed(2)}
+            </span>
+          </div>
+        `).join('')}
+      </div>
+    `
+  }).join('')
+}
+
+// Spending tab handling
+document.querySelectorAll('#spending-tabs .tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('#spending-tabs .tab').forEach(t => t.classList.remove('active'))
+    tab.classList.add('active')
+    spendingDays = parseInt(tab.dataset.days)
+    fetchSpendingData(spendingDays)
   })
 })
 
