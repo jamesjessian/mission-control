@@ -194,6 +194,17 @@ function friendlyDateLabel(dateStr) {
 
 function renderChart(daily) {
   const canvas = document.getElementById('revenue-chart')
+  const color = '#111827'
+  const values = daily.map(d => convertAmount(d.revenue))
+  const labels = daily.map(d => d.date)
+  const formatValue = v => formatCurrency(v)
+
+  drawBarChart(canvas, values, labels, color, formatValue)
+}
+
+// ── Shared Bar Chart Renderer ─────────────────────────
+
+function drawBarChart(canvas, values, labels, color, formatValue, highlightIdx) {
   const ctx = canvas.getContext('2d')
   const dpr = window.devicePixelRatio || 1
   const rect = canvas.parentElement.getBoundingClientRect()
@@ -209,42 +220,141 @@ function renderChart(daily) {
   const chartH = h - pad.top - pad.bottom
 
   ctx.clearRect(0, 0, w, h)
-  if (!daily.length) return
+  if (!values.length) return
 
-  const values = daily.map(d => convertAmount(d.revenue))
   const max = Math.max(...values, 1)
-  const range = max || 1
 
   const barGap = 2
   const barWidth = Math.max(1, (chartW - barGap * (values.length - 1)) / values.length)
 
+  // Store chart geometry for interaction
+  canvas._chartMeta = { values, labels, pad, barWidth, barGap, color, formatValue }
+
   values.forEach((val, i) => {
     const x = pad.left + i * (barWidth + barGap)
-    const barH = Math.max(1, val / range * chartH)
+    const barH = Math.max(val > 0 ? 1 : 0, val / max * chartH)
     const y = pad.top + chartH - barH
 
-    ctx.fillStyle = val > 0 ? '#111827' : '#d1d5db'
+    const isHighlight = highlightIdx === i
+    const isActive = highlightIdx != null
+
+    if (isActive && !isHighlight) {
+      ctx.fillStyle = val > 0 ? (color + '40') : '#e5e7eb'
+    } else {
+      ctx.fillStyle = val > 0 ? color : '#d1d5db'
+    }
+
     ctx.beginPath()
     const r = Math.min(3, barWidth / 2)
     ctx.roundRect(x, y, barWidth, barH, [r, r, 0, 0])
     ctx.fill()
   })
 
+  // Date labels along x-axis
   ctx.fillStyle = '#9ca3af'
   ctx.font = '10px -apple-system, system-ui, sans-serif'
   ctx.textBaseline = 'top'
 
   const labelY = pad.top + chartH + 6
-  const indices = [0, Math.floor(daily.length / 2), daily.length - 1]
+  const indices = [0, Math.floor(values.length / 2), values.length - 1]
   const aligns = ['left', 'center', 'right']
 
   indices.forEach((idx, i) => {
-    if (idx >= daily.length) return
-    const label = formatDateLabel(daily[idx].date)
+    if (idx >= labels.length) return
+    const label = formatDateLabel(labels[idx])
     const x = pad.left + idx * (barWidth + barGap) + barWidth / 2
     ctx.textAlign = aligns[i]
     ctx.fillText(label, x, labelY)
   })
+
+  // Set up interaction once
+  if (!canvas._chartBound) {
+    setupChartInteraction(canvas)
+    canvas._chartBound = true
+  }
+}
+
+// ── Chart Interaction (touch/mouse scrub) ──────────────
+
+function setupChartInteraction(canvas) {
+  // Create tooltip element
+  const tooltip = document.createElement('div')
+  tooltip.className = 'chart-tooltip'
+  tooltip.hidden = true
+  canvas.parentElement.appendChild(tooltip)
+  canvas._tooltip = tooltip
+
+  let active = false
+
+  function getBarIndex(clientX) {
+    const meta = canvas._chartMeta
+    if (!meta) return -1
+    const rect = canvas.getBoundingClientRect()
+    const x = clientX - rect.left
+    const { pad, barWidth, barGap, values } = meta
+    // Calculate which bar the x position corresponds to
+    const relX = x - pad.left
+    const step = barWidth + barGap
+    let idx = Math.round(relX / step)
+    idx = Math.max(0, Math.min(values.length - 1, idx))
+    return idx
+  }
+
+  function showTooltip(clientX) {
+    const meta = canvas._chartMeta
+    if (!meta) return
+    const idx = getBarIndex(clientX)
+    if (idx < 0) return
+
+    const { values, labels, formatValue, color } = meta
+    const date = labels[idx]
+    const val = values[idx]
+
+    const tooltip = canvas._tooltip
+    const dateLabel = formatDateLabel(date)
+    tooltip.innerHTML = `<span class="chart-tooltip-date">${dateLabel}</span><span class="chart-tooltip-value" style="color:${color}">${formatValue(val)}</span>`
+    tooltip.hidden = false
+
+    // Redraw with highlight
+    drawBarChart(canvas, values, labels, color, formatValue, idx)
+  }
+
+  function hideTooltip() {
+    active = false
+    canvas._tooltip.hidden = true
+    const meta = canvas._chartMeta
+    if (meta) {
+      drawBarChart(canvas, meta.values, meta.labels, meta.color, meta.formatValue)
+    }
+  }
+
+  // Mouse events
+  canvas.addEventListener('mousedown', e => {
+    active = true
+    showTooltip(e.clientX)
+  })
+  canvas.addEventListener('mousemove', e => {
+    if (active) showTooltip(e.clientX)
+  })
+  canvas.addEventListener('mouseup', hideTooltip)
+  canvas.addEventListener('mouseleave', () => {
+    if (active) hideTooltip()
+  })
+
+  // Touch events
+  canvas.addEventListener('touchstart', e => {
+    active = true
+    showTooltip(e.touches[0].clientX)
+    e.preventDefault()
+  }, { passive: false })
+  canvas.addEventListener('touchmove', e => {
+    if (active) {
+      showTooltip(e.touches[0].clientX)
+      e.preventDefault()
+    }
+  }, { passive: false })
+  canvas.addEventListener('touchend', hideTooltip)
+  canvas.addEventListener('touchcancel', hideTooltip)
 }
 
 function formatDateLabel(dateStr) {
@@ -711,56 +821,11 @@ function renderChangeInline(change) {
 }
 
 function renderPlayersChart(canvas, daily, color) {
-  const ctx = canvas.getContext('2d')
-  const dpr = window.devicePixelRatio || 1
-  const rect = canvas.parentElement.getBoundingClientRect()
-
-  canvas.width = rect.width * dpr
-  canvas.height = rect.height * dpr
-  ctx.scale(dpr, dpr)
-
-  const w = rect.width
-  const h = rect.height
-  const pad = { top: 8, right: 8, bottom: 24, left: 0 }
-  const chartW = w - pad.left - pad.right
-  const chartH = h - pad.top - pad.bottom
-
-  ctx.clearRect(0, 0, w, h)
-  if (!daily.length) return
-
   const values = daily.map(d => d.players)
-  const max = Math.max(...values, 1)
+  const labels = daily.map(d => d.date)
+  const formatValue = v => formatNumber(v)
 
-  const barGap = 2
-  const barWidth = Math.max(1, (chartW - barGap * (values.length - 1)) / values.length)
-
-  values.forEach((val, i) => {
-    const x = pad.left + i * (barWidth + barGap)
-    const barH = Math.max(val > 0 ? 1 : 0, val / max * chartH)
-    const y = pad.top + chartH - barH
-
-    ctx.fillStyle = val > 0 ? color : '#d1d5db'
-    ctx.beginPath()
-    const r = Math.min(3, barWidth / 2)
-    ctx.roundRect(x, y, barWidth, barH, [r, r, 0, 0])
-    ctx.fill()
-  })
-
-  ctx.fillStyle = '#9ca3af'
-  ctx.font = '10px -apple-system, system-ui, sans-serif'
-  ctx.textBaseline = 'top'
-
-  const labelY = pad.top + chartH + 6
-  const indices = [0, Math.floor(daily.length / 2), daily.length - 1]
-  const aligns = ['left', 'center', 'right']
-
-  indices.forEach((idx, i) => {
-    if (idx >= daily.length) return
-    const label = formatDateLabel(daily[idx].date)
-    const x = pad.left + idx * (barWidth + barGap) + barWidth / 2
-    ctx.textAlign = aligns[i]
-    ctx.fillText(label, x, labelY)
-  })
+  drawBarChart(canvas, values, labels, color, formatValue)
 }
 
 // Players tab handling
