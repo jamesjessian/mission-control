@@ -7,10 +7,6 @@ Globals:
     Runtime: nodejs20.x
     Timeout: 60
     MemorySize: 256
-    Environment:
-      Variables:
-        PROSPER_SECRET_ARN: !Ref ProsperCredentials
-        REVENUE_TABLE: !Ref RevenueTable
 
 Parameters:
   Stage:
@@ -32,6 +28,68 @@ Resources:
         AllowHeaders:
           - Content-Type
 
+  # ── Players Lambda ──────────────────────────────────
+  PlayersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/players/
+      Handler: index.handler
+      Timeout: 120
+      Architectures:
+        - arm64
+      Environment:
+        Variables:
+          PLAYERS_TABLE: !Ref PlayersTable
+          GCP_SECRET_ARN: !Ref GcpCredentials
+      Events:
+        GetPlayers:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /api/players
+            Method: GET
+        DailyPreload:
+          Type: Schedule
+          Properties:
+            Schedule: cron(5 6 * * ? *)
+            Description: Daily players cache preload at 6:05am UTC
+            Enabled: true
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PlayersTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref GcpCredentials
+
+  # ── DynamoDB (players cache) ────────────────────────
+  PlayersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  # ── GCP Service Account Credentials ─────────────────
+  GcpCredentials:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: mission-control/gcp-service-account
+      Description: GCP service account credentials for Google Sheets API
+      SecretString: '{}'
+
   # ── Revenue Lambda ──────────────────────────────────
   RevenueFunction:
     Type: AWS::Serverless::Function
@@ -41,6 +99,10 @@ Resources:
       Timeout: 120
       Architectures:
         - arm64
+      Environment:
+        Variables:
+          PROSPER_SECRET_ARN: !Ref ProsperCredentials
+          REVENUE_TABLE: !Ref RevenueTable
       Events:
         GetRevenue:
           Type: HttpApi

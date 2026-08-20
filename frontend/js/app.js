@@ -33,7 +33,7 @@ menu.addEventListener('touchmove', e => {
 // ── Page Navigation ───────────────────────────────
 const menuItems = document.querySelectorAll('.menu-item')
 const pages = document.querySelectorAll('.page')
-const pageTitles = { revenue: 'Revenue', todo: 'Todo', documents: 'Documents' }
+const pageTitles = { revenue: 'Revenue', players: 'Players', todo: 'Todo', documents: 'Documents' }
 
 menuItems.forEach(item => {
   item.addEventListener('click', () => {
@@ -45,6 +45,7 @@ menuItems.forEach(item => {
     pageTitle.textContent = pageTitles[page] || page
     closeMenu()
     if (page === 'revenue' && !revenueData) fetchRevenue(currentDays)
+    if (page === 'players' && !playersData) fetchPlayers(playersDays)
   })
 })
 
@@ -321,6 +322,7 @@ window.addEventListener('resize', () => {
   clearTimeout(resizeTimeout)
   resizeTimeout = setTimeout(() => {
     if (revenueData) renderRevenue(revenueData)
+    if (playersData) renderPlayers(playersData)
   }, 150)
 })
 
@@ -607,6 +609,170 @@ document.querySelectorAll('.todo-tab').forEach(tab => {
 
 switchTodoTab(activeTodoList)
 renderTodos()
+
+// ── Players ──────────────────────────────────────────
+
+let playersDays = 7
+let playersData = null
+
+const GAME_COLORS = {
+  waffle: '#f59e0b',
+  ows: '#3b82f6',
+  stackdown: '#10b981',
+  lettergrams: '#8b5cf6',
+}
+
+async function fetchPlayers(days) {
+  const loading = document.getElementById('players-loading')
+  const error = document.getElementById('players-error')
+  loading.hidden = false
+  error.hidden = true
+
+  try {
+    const resp = await fetch(`${API_BASE}/api/players?days=${days}`)
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+    playersData = await resp.json()
+    renderPlayers(playersData)
+  } catch (err) {
+    error.textContent = `Failed to load players: ${err.message}`
+    error.hidden = false
+  } finally {
+    loading.hidden = true
+  }
+}
+
+function renderPlayers(data) {
+  const container = document.getElementById('players-games')
+  container.innerHTML = ''
+
+  const gameOrder = ['waffle', 'ows', 'stackdown', 'lettergrams']
+
+  for (const key of gameOrder) {
+    const game = data.games[key]
+    if (!game) continue
+
+    const { current, previous, label } = game
+    const color = GAME_COLORS[key]
+
+    // Find latest day with data
+    const withData = current.daily.filter(d => d.players > 0)
+    const latest = withData[withData.length - 1]
+    const prev = withData.length > 1 ? withData[withData.length - 2] : null
+
+    const section = document.createElement('div')
+    section.className = 'players-game'
+    section.innerHTML = `
+      <div class="players-game-header">
+        <span class="players-game-dot" style="background:${color}"></span>
+        <span class="players-game-label">${label}</span>
+      </div>
+      <div class="players-game-hero">
+        <div class="hero-stat">
+          <span class="hero-label">${latest ? friendlyDateLabel(latest.date) : 'Latest'}</span>
+          <span class="hero-value players-hero-value">${latest ? formatNumber(latest.players) : '—'}</span>
+        </div>
+        ${prev ? `
+        <div class="hero-stat">
+          <span class="hero-label">${friendlyDateLabel(prev.date)}</span>
+          <span class="hero-value secondary">${formatNumber(prev.players)}</span>
+        </div>` : ''}
+      </div>
+      <div class="players-game-summary">
+        <div class="summary-item">
+          <span class="summary-label">Daily avg</span>
+          <span class="summary-value">${formatNumber(current.avg)}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Period total</span>
+          <span class="summary-value">${formatNumber(current.total)}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">vs prev ${data.days}d</span>
+          <span class="summary-value">${renderChangeInline(previous.change)}</span>
+        </div>
+      </div>
+      <div class="players-chart-container">
+        <canvas class="players-chart" data-game="${key}"></canvas>
+      </div>
+    `
+    container.appendChild(section)
+
+    // Render chart
+    const canvas = section.querySelector('.players-chart')
+    renderPlayersChart(canvas, current.daily, color)
+  }
+}
+
+function renderChangeInline(change) {
+  if (change === null || change === undefined) return '<span class="comparison-change flat">—</span>'
+  const sign = change > 0 ? '+' : ''
+  const cls = change > 0 ? 'up' : change < 0 ? 'down' : 'flat'
+  return `<span class="comparison-change ${cls}">${sign}${change.toFixed(1)}%</span>`
+}
+
+function renderPlayersChart(canvas, daily, color) {
+  const ctx = canvas.getContext('2d')
+  const dpr = window.devicePixelRatio || 1
+  const rect = canvas.parentElement.getBoundingClientRect()
+
+  canvas.width = rect.width * dpr
+  canvas.height = rect.height * dpr
+  ctx.scale(dpr, dpr)
+
+  const w = rect.width
+  const h = rect.height
+  const pad = { top: 8, right: 8, bottom: 24, left: 0 }
+  const chartW = w - pad.left - pad.right
+  const chartH = h - pad.top - pad.bottom
+
+  ctx.clearRect(0, 0, w, h)
+  if (!daily.length) return
+
+  const values = daily.map(d => d.players)
+  const max = Math.max(...values, 1)
+
+  const barGap = 2
+  const barWidth = Math.max(1, (chartW - barGap * (values.length - 1)) / values.length)
+
+  values.forEach((val, i) => {
+    const x = pad.left + i * (barWidth + barGap)
+    const barH = Math.max(val > 0 ? 1 : 0, val / max * chartH)
+    const y = pad.top + chartH - barH
+
+    ctx.fillStyle = val > 0 ? color : '#d1d5db'
+    ctx.beginPath()
+    const r = Math.min(3, barWidth / 2)
+    ctx.roundRect(x, y, barWidth, barH, [r, r, 0, 0])
+    ctx.fill()
+  })
+
+  ctx.fillStyle = '#9ca3af'
+  ctx.font = '10px -apple-system, system-ui, sans-serif'
+  ctx.textBaseline = 'top'
+
+  const labelY = pad.top + chartH + 6
+  const indices = [0, Math.floor(daily.length / 2), daily.length - 1]
+  const aligns = ['left', 'center', 'right']
+
+  indices.forEach((idx, i) => {
+    if (idx >= daily.length) return
+    const label = formatDateLabel(daily[idx].date)
+    const x = pad.left + idx * (barWidth + barGap) + barWidth / 2
+    ctx.textAlign = aligns[i]
+    ctx.fillText(label, x, labelY)
+  })
+}
+
+// Players tab handling
+document.querySelectorAll('#players-tabs .tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('#players-tabs .tab').forEach(t => t.classList.remove('active'))
+    tab.classList.add('active')
+    playersDays = parseInt(tab.dataset.days)
+    playersData = null
+    fetchPlayers(playersDays)
+  })
+})
 
 // ── Init ───────────────────────────────────────────
 
