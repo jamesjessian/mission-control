@@ -7,6 +7,7 @@ PROFILE="${AWS_PROFILE:-jessian}"
 
 echo "── Building Lambda dependencies ──"
 cd backend/revenue && npm install && cd ../..
+cd backend/players && npm install && cd ../..
 
 echo "── SAM Build ──"
 sam build
