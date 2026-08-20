@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Prosper</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="apple-touch-icon" href="data:,">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#ffffff">
+</head>
+<body>
+
+  <!-- Overlay for menu -->
+  <div class="menu-overlay" id="menu-overlay"></div>
+
+  <!-- Slide-out menu -->
+  <nav class="slide-menu" id="slide-menu">
+    <div class="menu-header">
+      <span class="menu-title">Prosper</span>
+      <button class="menu-close" id="menu-close" aria-label="Close menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+        </svg>
+      </button>
+    </div>
+    <ul class="menu-items">
+      <li>
+        <button class="menu-item active" data-page="revenue">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+          <span>Revenue</span>
+        </button>
+      </li>
+      <li>
+        <button class="menu-item" data-page="todo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          <span>Todo</span>
+        </button>
+      </li>
+      <li>
+        <button class="menu-item" data-page="documents">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a1 1 0 0 0 1 1h4"/><path d="m10 13 2 2 4-4"/>
+          </svg>
+          <span>Documents</span>
+        </button>
+      </li>
+    </ul>
+    <div class="menu-footer">
+      <span class="menu-version">Waffle Studio</span>
+    </div>
+  </nav>
+
+  <!-- App shell -->
+  <header>
+    <button class="hamburger" id="hamburger" aria-label="Open menu">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>
+      </svg>
+    </button>
+    <h1 id="page-title">Revenue</h1>
+    <div class="header-spacer"></div>
+  </header>
+
+  <main>
+    <!-- ── Revenue Page ─────────────────────────── -->
+    <section class="page active" id="page-revenue">
+      <div class="card">
+        <div class="card-header">
+          <div class="period-tabs">
+            <button class="tab active" data-days="7">7d</button>
+            <button class="tab" data-days="30">30d</button>
+            <button class="tab" data-days="90">90d</button>
+          </div>
+          <button class="currency-toggle" id="currency-toggle" aria-label="Toggle currency">
+            <span id="currency-label">USD</span>
+          </button>
+        </div>
+
+        <div class="revenue-hero" id="revenue-hero">
+          <div class="hero-stat">
+            <span class="hero-label" id="latest-label">Yesterday</span>
+            <span class="hero-value" id="latest-revenue">—</span>
+          </div>
+          <div class="hero-stat">
+            <span class="hero-label" id="previous-label">Day before</span>
+            <span class="hero-value secondary" id="previous-revenue">—</span>
+          </div>
+        </div>
+
+        <div class="revenue-summary" id="revenue-summary">
+          <div class="summary-item">
+            <span class="summary-label">Period total</span>
+            <span class="summary-value" id="total-revenue">—</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Daily avg</span>
+            <span class="summary-value" id="avg-revenue">—</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Impressions</span>
+            <span class="summary-value" id="total-impressions">—</span>
+          </div>
+        </div>
+
+        <div class="comparisons" id="comparisons">
+          <div class="comparison-row">
+            <span class="comparison-label">vs previous <span id="comp-prev-label">7d</span></span>
+            <span class="comparison-values">
+              <span class="comparison-amount" id="comp-prev-amount">—</span>
+              <span class="comparison-change" id="comp-prev-change"></span>
+            </span>
+          </div>
+          <div class="comparison-row">
+            <span class="comparison-label">vs same period last year</span>
+            <span class="comparison-values">
+              <span class="comparison-amount" id="comp-yoy-amount">—</span>
+              <span class="comparison-change" id="comp-yoy-change"></span>
+            </span>
+          </div>
+          <div class="comparison-row">
+            <span class="comparison-label">vs 12-month avg</span>
+            <span class="comparison-values">
+              <span class="comparison-amount" id="comp-rolling-amount">—</span>
+              <span class="comparison-change" id="comp-rolling-change"></span>
+            </span>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <canvas id="revenue-chart"></canvas>
+        </div>
+
+        <div class="loading" id="revenue-loading">Loading…</div>
+        <div class="error" id="revenue-error" hidden></div>
+      </div>
+    </section>
+
+    <!-- ── Todo Page ────────────────────────────── -->
+    <section class="page" id="page-todo">
+      <div class="todo-header">
+        <div class="todo-tabs">
+          <button class="todo-tab active" data-list="home">Home</button>
+          <button class="todo-tab" data-list="work">Work</button>
+        </div>
+      </div>
+      <div class="todo-section active" data-list="home">
+        <div class="todo-add">
+          <input type="text" class="todo-input" placeholder="Add a task…" autocomplete="off">
+          <button class="todo-add-btn" aria-label="Add task">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+          </button>
+        </div>
+        <ul class="todo-list"></ul>
+      </div>
+      <div class="todo-section" data-list="work">
+        <div class="todo-add">
+          <input type="text" class="todo-input" placeholder="Add a task…" autocomplete="off">
+          <button class="todo-add-btn" aria-label="Add task">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+          </button>
+        </div>
+        <ul class="todo-list"></ul>
+      </div>
+    </section>
+
+    <!-- ── Documents Page ───────────────────────── -->
+    <section class="page" id="page-documents">
+      <div class="card">
+        <div class="search-bar">
+          <input type="text" id="search-input" placeholder="Search scanned documents…" autocomplete="off">
+          <button id="search-btn" aria-label="Search">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+            </svg>
+          </button>
+        </div>
+        <div id="search-results"></div>
+        <p class="muted" id="search-placeholder">Search across all your scanned PDFs</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
