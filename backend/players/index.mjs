@@ -110,7 +110,7 @@ async function getAccessToken() {
   const resp = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `grant_type=${encodeURIComponent('urn:ietf:params:oauth:grant_type:jwt-bearer')}&assertion=${jwt}`,
+    body: `grant_type=${encodeURIComponent('urn:ietf:params:oauth:grant-type:jwt-bearer')}&assertion=${jwt}`,
   })
 
   if (!resp.ok) throw new Error(`Token exchange failed: ${resp.status}`)
