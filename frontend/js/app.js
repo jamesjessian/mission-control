@@ -33,7 +33,7 @@ menu.addEventListener('touchmove', e => {
 // ── Page Navigation ───────────────────────────────
 const menuItems = document.querySelectorAll('.menu-item')
 const pages = document.querySelectorAll('.page')
-const pageTitles = { revenue: 'Revenue', players: 'Players', todo: 'Todo', documents: 'Documents' }
+const pageTitles = { revenue: 'Revenue', players: 'Players', messages: 'Monday Messages', todo: 'Todo', documents: 'Documents' }
 
 menuItems.forEach(item => {
   item.addEventListener('click', () => {
@@ -46,6 +46,7 @@ menuItems.forEach(item => {
     closeMenu()
     if (page === 'revenue' && !revenueData) fetchRevenue(currentDays)
     if (page === 'players' && !playersData) fetchPlayers(playersDays)
+    if (page === 'messages' && !messagesLoaded) fetchMessageHistory()
   })
 })
 
@@ -838,6 +839,176 @@ document.querySelectorAll('#players-tabs .tab').forEach(tab => {
     fetchPlayers(playersDays)
   })
 })
+
+// ── Monday Messages ──────────────────────────────────
+
+let messagesLoaded = false
+
+// Preview button
+document.getElementById('msg-preview-btn').addEventListener('click', async () => {
+  const raw = document.getElementById('msg-raw').value.trim()
+  if (!raw) return showMsgStatus('Enter the message text first', 'error')
+  await formatMessage(true)
+})
+
+// Upload button
+document.getElementById('msg-upload-btn').addEventListener('click', async () => {
+  const raw = document.getElementById('msg-raw').value.trim()
+  if (!raw) return showMsgStatus('Enter the message text first', 'error')
+  if (!confirm('Upload this Monday message?')) return
+  await formatMessage(false)
+})
+
+async function formatMessage(previewOnly) {
+  const raw = document.getElementById('msg-raw').value.trim()
+  const url = document.getElementById('msg-url').value.trim()
+  const image = document.getElementById('msg-image').value.trim()
+  const imageUrl = document.getElementById('msg-image-url').value.trim()
+
+  const btn = previewOnly
+    ? document.getElementById('msg-preview-btn')
+    : document.getElementById('msg-upload-btn')
+  const origText = btn.textContent
+  btn.disabled = true
+  btn.textContent = previewOnly ? 'Formatting…' : 'Uploading…'
+
+  try {
+    const resp = await fetch(`${API_BASE}/api/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ raw, url, image, imageUrl, preview: previewOnly }),
+    })
+
+    const data = await resp.json()
+    if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`)
+
+    // Show preview
+    const previewCard = document.getElementById('msg-preview-card')
+    document.getElementById('msg-preview-date').textContent = data.date + (data.dayOfYear ? ' — ' + data.dayOfYear : '')
+    document.getElementById('msg-preview-body').innerHTML = data.html
+    previewCard.hidden = false
+
+    if (!previewOnly) {
+      showMsgStatus(`Uploaded for ${data.date}`, 'success')
+      // Refresh history
+      messagesLoaded = false
+      fetchMessageHistory()
+    } else {
+      showMsgStatus(`Preview for ${data.date}`, 'info')
+    }
+  } catch (err) {
+    showMsgStatus(err.message, 'error')
+  } finally {
+    btn.disabled = false
+    btn.textContent = origText
+  }
+}
+
+function showMsgStatus(text, type) {
+  const el = document.getElementById('msg-status')
+  el.textContent = text
+  el.className = `msg-status ${type}`
+  el.hidden = false
+  if (type !== 'error') {
+    setTimeout(() => { el.hidden = true }, 4000)
+  }
+}
+
+async function fetchMessageHistory() {
+  const loading = document.getElementById('msg-history-loading')
+  const error = document.getElementById('msg-history-error')
+  const list = document.getElementById('msg-history-list')
+  loading.hidden = false
+  error.hidden = true
+
+  try {
+    const resp = await fetch(`${API_BASE}/api/messages`)
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+    const data = await resp.json()
+    messagesLoaded = true
+    renderMessageHistory(data.messages)
+  } catch (err) {
+    error.textContent = `Failed to load history: ${err.message}`
+    error.hidden = false
+  } finally {
+    loading.hidden = true
+  }
+}
+
+function renderMessageHistory(messages) {
+  const container = document.getElementById('msg-history-list')
+  if (!messages.length) {
+    container.innerHTML = '<p class="muted">No messages uploaded yet</p>'
+    return
+  }
+
+  container.innerHTML = messages.map(msg => {
+    const d = new Date(msg.date + 'T12:00:00')
+    const dateLabel = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+    const uploaded = msg.lastModified
+      ? new Date(msg.lastModified).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+      : ''
+
+    return `
+      <div class="msg-history-item" data-date="${msg.date}">
+        <div class="msg-history-info">
+          <span class="msg-history-date">${dateLabel}</span>
+          <span class="msg-history-meta">${uploaded}</span>
+        </div>
+        <div class="msg-history-actions">
+          <button class="msg-history-view" data-date="${msg.date}" title="View">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+          <button class="msg-history-delete" data-date="${msg.date}" title="Delete">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `
+  }).join('')
+
+  // View handlers
+  container.querySelectorAll('.msg-history-view').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const date = btn.dataset.date
+      try {
+        const resp = await fetch(`${API_BASE}/api/messages?date=${date}`)
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+        const data = await resp.json()
+
+        const previewCard = document.getElementById('msg-preview-card')
+        document.getElementById('msg-preview-date').textContent = data.date
+        document.getElementById('msg-preview-body').innerHTML = data.html
+        previewCard.hidden = false
+        previewCard.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      } catch (err) {
+        showMsgStatus(`Failed to load message: ${err.message}`, 'error')
+      }
+    })
+  })
+
+  // Delete handlers
+  container.querySelectorAll('.msg-history-delete').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const date = btn.dataset.date
+      if (!confirm(`Delete Monday message for ${date}?`)) return
+
+      try {
+        const resp = await fetch(`${API_BASE}/api/messages?date=${date}`, { method: 'DELETE' })
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+
+        showMsgStatus(`Deleted ${date}`, 'success')
+        btn.closest('.msg-history-item').remove()
+      } catch (err) {
+        showMsgStatus(`Failed to delete: ${err.message}`, 'error')
+      }
+    })
+  })
+}
 
 // ── Init ───────────────────────────────────────────
 

@@ -90,6 +90,51 @@ Resources:
       Description: GCP service account credentials for Google Sheets API
       SecretString: '{}'
 
+  # ── Messages Lambda ─────────────────────────────────
+  MessagesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/messages/
+      Handler: index.handler
+      Timeout: 30
+      Architectures:
+        - arm64
+      Events:
+        GetMessages:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /api/messages
+            Method: GET
+        PostMessages:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /api/messages
+            Method: POST
+        DeleteMessages:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /api/messages
+            Method: DELETE
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:PutObject
+                - s3:PutObjectAcl
+                - s3:DeleteObject
+              Resource: arn:aws:s3:::assets.waffle.game/dailymessage/*
+            - Effect: Allow
+              Action:
+                - s3:ListBucket
+              Resource: arn:aws:s3:::assets.waffle.game
+              Condition:
+                StringLike:
+                  s3:prefix: dailymessage/*
+
   # ── Revenue Lambda ──────────────────────────────────
   RevenueFunction:
     Type: AWS::Serverless::Function
@@ -229,3 +274,6 @@ Outputs:
     Value: !Sub https://${CloudFrontDistribution.DomainName}
   FrontendBucket:
     Value: !Ref FrontendBucket
+  MessagesFunctionRoleArn:
+    Description: IAM Role ARN for the Messages Lambda (add to assets.waffle.game bucket policy)
+    Value: !GetAtt MessagesFunctionRole.Arn

@@ -43,6 +43,14 @@
         </button>
       </li>
       <li>
+        <button class="menu-item" data-page="messages">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 8h10M7 12h4m1 8-4-4H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3l-4 4z"/>
+          </svg>
+          <span>Messages</span>
+        </button>
+      </li>
+      <li>
         <button class="menu-item" data-page="todo">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 5v14M5 12h14"/>
@@ -164,6 +172,51 @@
 
         <div class="loading" id="players-loading">Loading…</div>
         <div class="error" id="players-error" hidden></div>
+      </div>
+    </section>
+
+    <!-- ── Messages Page ─────────────────────────── -->
+    <section class="page" id="page-messages">
+      <!-- Editor -->
+      <div class="card msg-editor">
+        <h2>New Monday Message</h2>
+        <textarea id="msg-raw" class="msg-textarea" rows="8" placeholder="Hello Wafflers! Welcome to another week..."></textarea>
+        <div class="msg-fields">
+          <div class="msg-field">
+            <label for="msg-url">Day-of-year URL</label>
+            <input type="url" id="msg-url" placeholder="https://www.daysoftheyear.com/days/...">
+          </div>
+          <div class="msg-field">
+            <label for="msg-image">Image URL (optional)</label>
+            <input type="url" id="msg-image" placeholder="https://static.waffle.game/...">
+          </div>
+          <div class="msg-field">
+            <label for="msg-image-url">Image link URL (optional)</label>
+            <input type="url" id="msg-image-url" placeholder="https://...">
+          </div>
+        </div>
+        <div class="msg-actions">
+          <button class="msg-btn secondary" id="msg-preview-btn">Preview</button>
+          <button class="msg-btn primary" id="msg-upload-btn">Upload</button>
+        </div>
+        <div class="msg-status" id="msg-status" hidden></div>
+      </div>
+
+      <!-- Preview -->
+      <div class="card msg-preview-card" id="msg-preview-card" hidden>
+        <div class="msg-preview-header">
+          <h2>Preview</h2>
+          <span class="msg-preview-date" id="msg-preview-date"></span>
+        </div>
+        <div class="msg-preview-body" id="msg-preview-body"></div>
+      </div>
+
+      <!-- History -->
+      <div class="card msg-history">
+        <h2>Message History</h2>
+        <div id="msg-history-list"></div>
+        <div class="loading" id="msg-history-loading">Loading…</div>
+        <div class="error" id="msg-history-error" hidden></div>
       </div>
     </section>
 

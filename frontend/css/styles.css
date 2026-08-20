@@ -532,6 +532,229 @@ main {
   border-radius: 8px;
 }
 
+/* ── Monday Messages ────────────────────────────── */
+
+.msg-editor,
+.msg-preview-card,
+.msg-history {
+  margin-bottom: 0.75rem;
+}
+
+.msg-editor h2,
+.msg-history h2 {
+  margin-bottom: 0.75rem;
+}
+
+.msg-textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+  min-height: 120px;
+}
+
+.msg-textarea:focus {
+  border-color: var(--accent);
+}
+
+.msg-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.msg-field label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 0.125rem;
+}
+
+.msg-field input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.625rem;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--bg);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.msg-field input:focus {
+  border-color: var(--accent);
+}
+
+.msg-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.msg-btn {
+  flex: 1;
+  border: none;
+  border-radius: 8px;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.msg-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.msg-btn.primary {
+  background: var(--accent);
+  color: white;
+}
+
+.msg-btn.secondary {
+  background: var(--accent-light);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.msg-btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.msg-status {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.msg-status.success {
+  background: #ecfdf5;
+  color: var(--green);
+}
+
+.msg-status.error {
+  background: #fef2f2;
+  color: var(--red);
+}
+
+.msg-status.info {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+/* Preview */
+.msg-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.msg-preview-date {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.msg-preview-body {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  padding: 1rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow-wrap: break-word;
+}
+
+.msg-preview-body a {
+  color: #2563eb;
+}
+
+.msg-preview-body b {
+  font-weight: 700;
+}
+
+.msg-preview-body img {
+  max-width: 100%;
+  border-radius: 14px;
+}
+
+/* History */
+.msg-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.msg-history-item:last-child {
+  border-bottom: none;
+}
+
+.msg-history-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.msg-history-date {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.msg-history-meta {
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+}
+
+.msg-history-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.msg-history-view,
+.msg-history-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.msg-history-view:hover {
+  background: var(--accent-light);
+  color: var(--text);
+}
+
+.msg-history-delete:hover {
+  background: #fef2f2;
+  color: var(--red);
+}
+
 /* ── Players ──────────────────────────────────── */
 
 .players-game {
